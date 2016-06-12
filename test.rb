@@ -48,6 +48,9 @@ end
 class Int < Type
 end
 
+class Str < Type
+end
+
 class Variable < Expression
     attr_accessor :name
 
@@ -67,7 +70,7 @@ class Tokenizer
     def tokenize
         while !@scanner.eos?
             case
-                when @scanner.scan(/\+|\-|\*|\/|\(|\)|[0-9]+|[a-z]+|=/)
+                when @scanner.scan(/\+|\-|\*|\/|\(|\)|[0-9]+|[a-z]+|=|"/)
                     @tokens << @scanner.matched
                 when @scanner.scan(/[ ]+/)
                     #空白の時は何もしない
@@ -100,6 +103,27 @@ class Parser
                 end
                 shift
                 Int.new(v, expr)
+            when 'str'
+                shift
+                v = shift
+                unless v =~ /[a-z]/
+                    raise 'alphabet Expected'
+                end
+
+                unless token == '='
+                    raise '= Expected'
+                end
+
+                shift
+                unless token == "\""
+                    raise '" Expected'
+                end
+                shift
+                p Str.new(v, expr)
+                unless token == "\""
+                    raise '" Expected'
+                end
+                shift
             else
                 expr
         end
@@ -182,6 +206,8 @@ class VirtualMachine
                 expr.value.to_i
             when Int
                 @env[expr.name] = execute(expr.expr)
+            when Str
+                @env[expr.name] = execute(expr.expr)
             when Variable
                 @env[expr.name]
             else
@@ -191,7 +217,8 @@ class VirtualMachine
 end
 
 vm = VirtualMachine.new
-# p Parser.new("int a = a+4").parse
+#p Parser.new("str a = \"aaa\"").parse
+#p Tokenizer.new("str a = \"aaa\"").tokenize
 
 while true
     expr = gets.chomp
