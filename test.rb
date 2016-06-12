@@ -140,9 +140,17 @@ class VirtualMachine
                 execute(expr.l_expr) / execute(expr.r_expr)
             when Value
                 expr.value.to_i
+            else
+                raise 'Unknown Expression'
         end
     end
 end
 
 vm = VirtualMachine.new
-p vm.execute(Parser.new("(2+4)*5").parse)
+
+while true
+    expr = gets.chomp
+    breake if expr =~ /q/i
+    parsed = Parser.new(expr).parse
+    p vm.execute(parsed)
+end
