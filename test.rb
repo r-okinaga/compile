@@ -36,6 +36,26 @@ class Value < Expression
     end
 end
 
+class Type < Expression
+    attr_accessor :name, :expr
+
+    def initialize(name, expr)
+        @name = name
+        @expr = expr
+    end
+end
+
+class Int < Type
+end
+
+class Variable < Expression
+    attr_accessor :name
+
+    def initialize(name)
+        @name = name
+    end
+end
+
 require 'strscan'
 
 class Tokenizer
@@ -47,7 +67,7 @@ class Tokenizer
     def tokenize
         while !@scanner.eos?
             case
-                when @scanner.scan(/\+|\-|\*|\/|\(|\)|[0-9]+/)
+                when @scanner.scan(/\+|\-|\*|\/|\(|\)|[0-9]+|[a-z]+|=/)
                     @tokens << @scanner.matched
                 when @scanner.scan(/[ ]+/)
                     #空白の時は何もしない
@@ -63,7 +83,26 @@ class Parser
     end
 
     def parse
-        expr
+        statement
+    end
+
+    def statement
+        case token
+            when 'int'
+                shift
+                v = shift
+                unless v =~ /[a-z]/
+                    raise 'alphabet Expected'
+                end
+
+                unless token == '='
+                    raise '= Expected'
+                end
+                shift
+                Int.new(v, expr)
+            else
+                expr
+        end
     end
 
     def expr
@@ -97,7 +136,6 @@ class Parser
     end
 
     def factor
-        v = nil
         case token
             when /[0-9]+/
                 v = Value.new(shift)
@@ -108,6 +146,8 @@ class Parser
                     raise ') Expected'
                 end
                 shift
+            when /[a-z]/
+                v = Variable.new(shift)
             else
                 raise 'Unknown Token'
         end
@@ -125,7 +165,7 @@ end
 
 class VirtualMachine
     def initialize
-
+        @env = {}
     end
 
     def execute(expr)
@@ -140,6 +180,10 @@ class VirtualMachine
                 execute(expr.l_expr) / execute(expr.r_expr)
             when Value
                 expr.value.to_i
+            when Int
+                @env[expr.name] = execute(expr.expr)
+            when Variable
+                @env[expr.name]
             else
                 raise 'Unknown Expression'
         end
@@ -147,10 +191,11 @@ class VirtualMachine
 end
 
 vm = VirtualMachine.new
+# p Parser.new("int a = a+4").parse
 
 while true
     expr = gets.chomp
-    breake if expr =~ /q/i
+    break if expr =~ /q/i
     parsed = Parser.new(expr).parse
     p vm.execute(parsed)
 end
