@@ -103,7 +103,7 @@ class Parser
                 v = Value.new(shift)
             when '('
                 shift
-                expr
+                v = expr
                 unless token == ')'
                     raise ') Expected'
                 end
@@ -123,4 +123,26 @@ class Parser
     end
 end
 
-p Parser.new("2+4*5").parse
+class VirtualMachine
+    def initialize
+
+    end
+
+    def execute(expr)
+        case expr
+            when Add
+                execute(expr.l_expr) + execute(expr.r_expr)
+            when Subtract
+                execute(expr.l_expr) - execute(expr.r_expr)
+            when Multiply
+                execute(expr.l_expr) * execute(expr.r_expr)
+            when Divide
+                execute(expr.l_expr) / execute(expr.r_expr)
+            when Value
+                expr.value.to_i
+        end
+    end
+end
+
+vm = VirtualMachine.new
+p vm.execute(Parser.new("(2+4)*5").parse)
