@@ -59,6 +59,14 @@ class Variable < Expression
     end
 end
 
+class CharStr < Expression
+    attr_accessor :value
+
+    def initialize(value)
+        @value = value
+    end
+end
+
 require 'strscan'
 
 class Tokenizer
@@ -118,12 +126,7 @@ class Parser
                 unless token == "\""
                     raise '" Expected'
                 end
-                shift
-                p Str.new(v, expr)
-                unless token == "\""
-                    raise '" Expected'
-                end
-                shift
+                Str.new(v, expr)
             else
                 expr
         end
@@ -172,6 +175,14 @@ class Parser
                 shift
             when /[a-z]/
                 v = Variable.new(shift)
+
+            when "\""
+                shift
+                v = CharStr.new(shift)
+                unless token == "\""
+                    raise "\" Expected"
+                end
+                shift
             else
                 raise 'Unknown Token'
         end
@@ -204,6 +215,8 @@ class VirtualMachine
                 execute(expr.l_expr) / execute(expr.r_expr)
             when Value
                 expr.value.to_i
+            when CharStr
+                expr.value.to_s
             when Int
                 @env[expr.name] = execute(expr.expr)
             when Str
