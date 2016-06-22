@@ -78,7 +78,7 @@ class Tokenizer
     def tokenize
         while !@scanner.eos?
             case
-                when @scanner.scan(/\+|\-|\*|\/|\(|\)|[0-9]+|[a-z]+|=|"/)
+                when @scanner.scan(/\+|\-|\*|\/|\(|\)|[0-9]+|[a-z]+|=|"[^"]*"/)
                     @tokens << @scanner.matched
                 when @scanner.scan(/[ ]+/)
                     #空白の時は何もしない
@@ -123,10 +123,7 @@ class Parser
                 end
 
                 shift
-                unless token == "\""
-                    raise '" Expected'
-                end
-                Str.new(v, expr)
+                s = Str.new(v, expr)
             else
                 expr
         end
@@ -164,8 +161,8 @@ class Parser
 
     def factor
         case token
-            when /[0-9]+/
-                v = Value.new(shift)
+            when /^[0-9]+/
+                v = Value.new(shift.to_i)
             when '('
                 shift
                 v = expr
@@ -173,16 +170,11 @@ class Parser
                     raise ') Expected'
                 end
                 shift
-            when /[a-z]/
+            when /^[a-z]/
                 v = Variable.new(shift)
 
-            when "\""
-                shift
-                v = CharStr.new(shift)
-                unless token == "\""
-                    raise "\" Expected"
-                end
-                shift
+            when /^"[^"]*"/
+                v = Value.new(shift[1 .. -2])
             else
                 raise 'Unknown Token'
         end
@@ -214,9 +206,9 @@ class VirtualMachine
             when Divide
                 execute(expr.l_expr) / execute(expr.r_expr)
             when Value
-                expr.value.to_i
-            when CharStr
-                expr.value.to_s
+                expr.value
+#            when CharStr
+#                expr.value.to_s
             when Int
                 @env[expr.name] = execute(expr.expr)
             when Str
